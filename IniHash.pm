@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.3';
+$VERSION = '2.4';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -25,6 +25,7 @@ $Config::IniHash::case = 'lower';
 $Config::IniHash::heredoc = 0;
 $Config::IniHash::systemvars = 1;
 $Config::IniHash::withdefaults = 0;
+$Config::IniHash::sectionorder = 0;
 sub BREAK () {1}
 
 sub prepareOpt {
@@ -36,6 +37,7 @@ sub prepareOpt {
 	$opt->{systemvars} = $Config::IniHash::systemvars unless exists $opt->{systemvars};
 	$opt->{withdefaults} = $Config::IniHash::withdefaults unless exists $opt->{withdefaults};
 	$opt->{forValue} = $Config::IniHash::forValue unless exists $opt->{forValue};
+	$opt->{sectionorder} = $Config::IniHash::sectionorder unless exists $opt->{sectionorder};
 
 	for ($opt->{case}) {
 		$_ = lc $_;
@@ -131,11 +133,15 @@ sub ReadINI {
 
 	my ($lc,$uc) = ( $opt{forName} eq 'lc', $opt{forName} eq 'uc');
 	my $forValue = $opt{forValue};
+
+	$hash->{'__SECTIONS__'} = [] if $opt{sectionorder};
     while (<$IN>) {
         /^\s*;/ and next;
 
         if (/^\[(.*)\]/) {
             $section = $1;
+			if ($lc) { $section = lc $section} elsif ($uc) { $section = uc $section };
+			push @{$hash->{'__SECTIONS__'}}, $section if $opt{sectionorder};
             unless ($hash->{$section}) {
                 my %tmp = ();
 				if ($opt{withdefaults}) {
@@ -261,7 +267,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 2.3
+version 2.4
 
 =head1 SYNOPSIS
 
@@ -329,6 +335,13 @@ Default: 1 = ON
 
 - controls whether the created section hashes support defaults.
 
+=item sectionorder
+
+- if set to a true value then created hash will contain
+
+	$config->{'__SECTIONS__'} = [ 'the', 'names', 'of', 'the', 'sections', 'in', 'the',
+		'order', 'they', 'were', 'specified', 'in', 'the', 'INI file'];
+
 =item forValue
 
 - allows you to install a callback that will be called for each value as soon as it is read
@@ -340,6 +353,10 @@ The function is called like this:
 If the callback returns an undef, the value will not be stored.
 
 =back
+
+You may also set the defaults for the options by modifying the $Config::IniHash::optionname
+variables. These default settings will be used if you do not specify the option in the ReadINI()
+or ReadSection() call.
 
 =head3 ReadSection
 
@@ -365,7 +382,7 @@ http://Jenda.Krynicky.cz
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002 Jan Krynicky <Jenda@Krynicky.cz>. All rights reserved.
+Copyright (c) 2002-2003 Jan Krynicky <Jenda@Krynicky.cz>. All rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. There is only one aditional condition, you may

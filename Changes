@@ -6,5 +6,10 @@ Revision history for Perl extension Config::IniHash.
 2.2  Thu Dec 5 2002
 	- some fixes and tuneups
 
-2.3  Sun Nov 5 2003
+2.3  Sun Jan 5 2003
 	- Makefile.PL and use statement fixes
+
+2.4  Wed Jan 29 2003
+	- added sectionorder option
+	- section names are now subject to tolower/toupper as well
+	- minor fixes
