@@ -6,6 +6,7 @@
 # change 'tests => 1' to 'tests => last_test_to_print';
 
 use Test;
+use diagnostics;
 BEGIN { plan tests => 1 };
 use Config::IniHash;
 ok(1); # If we made it this far, we're ok.

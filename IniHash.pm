@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.4';
+$VERSION = '2.5';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -69,7 +69,7 @@ sub prepareOpt {
 			$opt->{forName} = 'lc';
 			BREAK}
 		or
-		/^no/ and do {
+		/^(?:no|sensitive)/ and do {
 			undef $opt->{class};
 			undef $opt->{forName};
 			BREAK}
@@ -99,7 +99,14 @@ sub prepareOpt {
 
 sub ReadINI {
     my $file = shift;
-	my %opt = @_;
+	my %opt;
+	if (@_ == 1 and ref $_[0]) {
+		%opt = %{$_[0]};
+	} elsif (@_ % 2 == 0) {
+		%opt = @_;
+	} else {
+		croak("ReadINI expects the filename plus either a reference to a hash of options or a list with even number of items!");
+	}
 	prepareOpt(\%opt);
 
     my $hash;
@@ -131,7 +138,7 @@ sub ReadINI {
 		open $IN, $file or return undef;
 	}
 
-	my ($lc,$uc) = ( $opt{forName} eq 'lc', $opt{forName} eq 'uc');
+	my ($lc,$uc) = ( (defined $opt{forName} and $opt{forName} eq 'lc'), (defined $opt{forName} and $opt{forName} eq 'uc'));
 	my $forValue = $opt{forValue};
 
 	$hash->{'__SECTIONS__'} = [] if $opt{sectionorder};
@@ -184,14 +191,25 @@ sub ReadINI {
 sub WriteINI {
     my ($file,$hash) = @_;
     open OUT, ">$file" or return undef;
-    foreach my $section (keys %$hash) {
-        print OUT "[$section]\n";
-        my $sec = $hash->{$section};
-        foreach my $key (keys %{$hash->{$section}}) {
-            print OUT"$key=$sec->{$key}\n";
-        }
-        print OUT "\n";
-    }
+	if (exists $hash->{'__SECTIONS__'}) {
+		foreach my $section (@{$hash->{'__SECTIONS__'}}) {
+			print OUT "[$section]\n";
+			my $sec = $hash->{$section};
+			foreach my $key (keys %{$hash->{$section}}) {
+				print OUT"$key=$sec->{$key}\n";
+			}
+			print OUT "\n";
+		}
+	} else {
+		foreach my $section (keys %$hash) {
+			print OUT "[$section]\n";
+			my $sec = $hash->{$section};
+			foreach my $key (keys %{$hash->{$section}}) {
+				print OUT"$key=$sec->{$key}\n";
+			}
+			print OUT "\n";
+		}
+	}
     close OUT;
     return 1;
 }
