@@ -1,0 +1,28 @@
+Config/IniHash version 2.2
+===========================
+
+This module reads and writes INI files.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+  Hash::Case
+  Hash::WithDefaults
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2002 Jenda Krynicky <Jenda@Krynicky.cz>
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
