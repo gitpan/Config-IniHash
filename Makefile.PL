@@ -8,4 +8,8 @@ WriteMakefile(
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'IniHash.pm', # retrieve abstract from module
        AUTHOR     => 'Jenda Krynicky (Jenda@Krynicky.cz)') : ()),
+	PREREQ_PM   => {
+	'Hash::Case'	=> '0', # or a minimum workable version
+	'Hash::WithDefaults' => '0.04',
+    },
 );

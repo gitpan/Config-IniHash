@@ -5,3 +5,6 @@ Revision history for Perl extension Config::IniHash.
 
 2.2  Thu Dec 5 2002
 	- some fixes and tuneups
+
+2.3  Sun Nov 5 2003
+	- Makefile.PL and use statement fixes

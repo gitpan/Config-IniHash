@@ -4,14 +4,13 @@ use Carp;
 use strict;
 use Symbol;
 use IO::Scalar;
-use Hash::Case::Preserve;
 
 use Exporter;
 use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.2';
+$VERSION = '2.3';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -262,7 +261,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 2.2
+version 2.3
 
 =head1 SYNOPSIS
 
