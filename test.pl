@@ -3,16 +3,27 @@
 
 #########################
 
-# change 'tests => 1' to 'tests => last_test_to_print';
+use Test::More tests => 4;
+#use diagnostics;
 
-use Test;
-use diagnostics;
-BEGIN { plan tests => 1 };
-use Config::IniHash;
-ok(1); # If we made it this far, we're ok.
+BEGIN { use_ok( 'Config::IniHash' ); }
 
-#########################
+my %orig_data = (
+	sec1 => {
+		foo => 5,
+		bar => 'Hello World!'
+	},
+	seC2 => {
+		what => 'sgfdfg=wtert',
+		other => 'fsdgfg;dfhfdghfg',
+	},
+);
 
-# Insert your test code below, the Test module is use()ed here so read
-# its man page ( perldoc Test ) for help writing this test script.
+my $filename = "$ENV{TEMP}\\test_Config_IniHash_$$.INI";
+ok( WriteINI( $filename, \%orig_data), "WriteINI => $filename");
+END { unlink $filename }
 
+my $read_data = ReadINI( $filename, {case => 'sensitive'});
+ok( (defined($read_data) and ref($read_data)), "ReadINI <= $filename");
+
+is_deeply( \%orig_data, $read_data, "Read data match the original");

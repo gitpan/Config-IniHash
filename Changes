@@ -21,3 +21,7 @@ Revision history for Perl extension Config::IniHash.
 
 2.7  Fri Nov 05 2004
 	- fixed WriteINI's handling of multiline values
+
+2.8  Sun Feb 20 2005
+	- you may specify what hash to take the %varname%s from
+	- you may specify what do comments look like

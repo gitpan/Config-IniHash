@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.7';
+$VERSION = '2.8';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -26,6 +26,7 @@ $Config::IniHash::heredoc = 0;
 $Config::IniHash::systemvars = 1;
 $Config::IniHash::withdefaults = 0;
 $Config::IniHash::sectionorder = 0;
+$Config::IniHash::comment = qr/^\s*[#;]/;
 sub BREAK () {1}
 
 sub prepareOpt {
@@ -38,6 +39,7 @@ sub prepareOpt {
 	$opt->{withdefaults} = $Config::IniHash::withdefaults unless exists $opt->{withdefaults};
 	$opt->{forValue} = $Config::IniHash::forValue unless exists $opt->{forValue};
 	$opt->{sectionorder} = $Config::IniHash::sectionorder unless exists $opt->{sectionorder};
+	$opt->{comment} = $Config::IniHash::comment unless exists $opt->{comment};
 
 	for ($opt->{case}) {
 		$_ = lc $_;
@@ -94,7 +96,15 @@ sub prepareOpt {
 	}
 
 	$opt->{heredoc} = ($opt->{heredoc} ? 1 : 0);
-	$opt->{systemvars} = ($opt->{systemvars} ? 1 : 0);
+	if (defined $opt->{systemvars} and $opt->{systemvars}) {
+		$opt->{systemvars} = \%ENV unless (ref $opt->{systemvars});
+	} else {
+		$opt->{systemvars} = 0;
+	}
+
+	if (! ref $opt->{comment}) {
+		$opt->{comment} = qr/^\s*[$opt->{comment}]/;
+	}
 }
 
 sub ReadINI {
@@ -143,7 +153,7 @@ sub ReadINI {
 
 	$hash->{'__SECTIONS__'} = [] if $opt{sectionorder};
     while (<$IN>) {
-        /^\s*;/ and next;
+        $_ =~ $opt{comment} and next;
 
         if (/^\[(.*)\]/) {
             $section = $1;
@@ -176,7 +186,7 @@ sub ReadINI {
 				 unless defined $_;
 				substr ($value, 0, 1) = '';
 			}
-            $value =~ s/%([^%]*)%/$ENV{$1} || "%$1%"/eg if $opt{systemvars};
+            $value =~ s/%([^%]*)%/$opt{systemvars}{$1} || "%$1%"/eg if $opt{systemvars};
 			if ($lc) { $name = lc $name} elsif ($uc) { $name = uc $name };
 			if ($forValue) {
 				$value = $forValue->($name, $value, $section, $hash);
@@ -202,7 +212,7 @@ sub WriteINI {
 					if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
 						print OUT"$key\n";
 					} elsif ($sec->{$key} =~ /\n/) {
-						print OUT"$key=<<*END*\n$sec->{$key}\n*END*\n";
+						print OUT"$key=<<*END_$key*\n$sec->{$key}\n*END_$key*\n";
 					} else {
 						print OUT"$key=$sec->{$key}\n";
 					}
@@ -302,7 +312,7 @@ sub ReadSection {
 					unless defined $_;
 				substr ($value, 0, 1) = '';
 			}
-            $value =~ s/%(.*?)%/$ENV{$1}/g if $opt{systemvars};
+            $value =~ s/%(.*?)%/$opt{systemvars}{$1}/g if $opt{systemvars};
 			if ($lc) { $name = lc $name} elsif ($uc) { $name = uc $name };
 			if ($forValue) {
 				$value = $forValue->($name, $value, undef, $hash);
@@ -365,14 +375,16 @@ Default: 0 = OFF
 
 =item systemvars
 
-- controls whether the system variables enclosed in %% are
-interpolated.
+- controls whether the (system) variables enclosed in %% are
+interpolated and optionaly contains the values in a hash ref.
 
     name=%USERNAME%
   leads to
     $data->{section}->{name} = "Jenda"
 
-Default: 1 = ON
+	systemvars = 1	- yes, take values from %ENV
+	systemvars = \%hash	- yes, take values from %hash
+	systemvars = 0	- no
 
 =item case
 
@@ -406,6 +418,17 @@ The function is called like this:
 
 If the callback returns an undef, the value will not be stored.
 
+=item comment
+
+- regular expression used to identify comments or a string containing the list of characters starting a comment.
+Each line is tested against the regexp is ignored if matches. If you specify a string a regexp like this will be created:
+
+	qr/^\s*[the_list]/
+
+The default is
+
+	qr/^\s*[#;]
+
 =back
 
 You may also set the defaults for the options by modifying the $Config::IniHash::optionname
@@ -436,10 +459,9 @@ http://Jenda.Krynicky.cz
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002-2003 Jan Krynicky <Jenda@Krynicky.cz>. All rights reserved.
+Copyright (c) 2002-2005 Jan Krynicky <Jenda@Krynicky.cz>. All rights reserved.
 
 This program is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself. There is only one aditional condition, you may
-NOT use this module for SPAMing! NEVER! (see http://spam.abuse.net/ for definition)
+modify it under the same terms as Perl itself.
 
 =cut
