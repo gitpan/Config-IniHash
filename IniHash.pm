@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.5';
+$VERSION = '2.7';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -176,7 +176,7 @@ sub ReadINI {
 				 unless defined $_;
 				substr ($value, 0, 1) = '';
 			}
-            $value =~ s/%(.*?)%/$ENV{$1}/g if $opt{systemvars};
+            $value =~ s/%([^%]*)%/$ENV{$1} || "%$1%"/eg if $opt{systemvars};
 			if ($lc) { $name = lc $name} elsif ($uc) { $name = uc $name };
 			if ($forValue) {
 				$value = $forValue->($name, $value, $section, $hash);
@@ -192,20 +192,56 @@ sub WriteINI {
     my ($file,$hash) = @_;
     open OUT, ">$file" or return undef;
 	if (exists $hash->{'__SECTIONS__'}) {
+		my $all_have_order = (scalar(@{$hash->{'__SECTIONS__'}}) == scalar(keys %$hash));
 		foreach my $section (@{$hash->{'__SECTIONS__'}}) {
 			print OUT "[$section]\n";
-			my $sec = $hash->{$section};
-			foreach my $key (keys %{$hash->{$section}}) {
-				print OUT"$key=$sec->{$key}\n";
+			my $sec;
+			if (exists $hash->{$section}) {
+				my $sec = $hash->{$section};
+				foreach my $key (keys %{$hash->{$section}}) {
+					if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
+						print OUT"$key\n";
+					} elsif ($sec->{$key} =~ /\n/) {
+						print OUT"$key=<<*END*\n$sec->{$key}\n*END*\n";
+					} else {
+						print OUT"$key=$sec->{$key}\n";
+					}
+				}
+			} else {
+				$all_have_order = 0;
 			}
 			print OUT "\n";
+		}
+		if (!$all_have_order) {
+			my %ordered; @ordered{@{$hash->{'__SECTIONS__'}}} = ();
+			foreach my $section (keys %$hash) {
+				next if exists($ordered{$section}) or $section eq '__SECTIONS__';
+				print OUT "[$section]\n";
+				my $sec = $hash->{$section};
+				foreach my $key (keys %{$hash->{$section}}) {
+					if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
+						print OUT"$key\n";
+					} elsif ($sec->{$key} =~ /\n/) {
+						print OUT"$key=<<*END*\n$sec->{$key}\n*END*\n";
+					} else {
+						print OUT"$key=$sec->{$key}\n";
+					}
+				}
+				print OUT "\n";
+			}
 		}
 	} else {
 		foreach my $section (keys %$hash) {
 			print OUT "[$section]\n";
 			my $sec = $hash->{$section};
 			foreach my $key (keys %{$hash->{$section}}) {
-				print OUT"$key=$sec->{$key}\n";
+				if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
+					print OUT"$key\n";
+				} elsif ($sec->{$key} =~ /\n/) {
+					print OUT"$key=<<*END*\n$sec->{$key}\n*END*\n";
+				} else {
+					print OUT"$key=$sec->{$key}\n";
+				}
 			}
 			print OUT "\n";
 		}
@@ -285,7 +321,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 2.4
+version 2.7
 
 =head1 SYNOPSIS
 

@@ -13,3 +13,11 @@ Revision history for Perl extension Config::IniHash.
 	- added sectionorder option
 	- section names are now subject to tolower/toupper as well
 	- minor fixes
+
+2.6
+	- some -w related fixes
+	- fixed %varname% handling
+	- WriteIni uses the section order
+
+2.7  Fri Nov 05 2004
+	- fixed WriteINI's handling of multiline values
