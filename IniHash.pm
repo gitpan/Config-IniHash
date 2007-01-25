@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.8';
+$VERSION = '2.8.2';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -232,7 +232,7 @@ sub WriteINI {
 					if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
 						print OUT"$key\n";
 					} elsif ($sec->{$key} =~ /\n/) {
-						print OUT"$key=<<*END*\n$sec->{$key}\n*END*\n";
+						print OUT"$key=<<*END_$key*\n$sec->{$key}\n*END_$key*\n";
 					} else {
 						print OUT"$key=$sec->{$key}\n";
 					}
@@ -248,7 +248,7 @@ sub WriteINI {
 				if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
 					print OUT"$key\n";
 				} elsif ($sec->{$key} =~ /\n/) {
-					print OUT"$key=<<*END*\n$sec->{$key}\n*END*\n";
+					print OUT"$key=<<*END_$key*\n$sec->{$key}\n*END_$key*\n";
 				} else {
 					print OUT"$key=$sec->{$key}\n";
 				}
@@ -347,6 +347,9 @@ This module reads and writes INI files.
 =head3 ReadINI
 
 	$hashreference = ReadINI ($filename, %options)
+	$hashreference = ReadINI (\$data, %options)
+	$hashreference = ReadINI (\@data, %options)
+	$hashreference = ReadINI ($filehandle, %options)
 
 The returned hash contains a reference to a hash for each section of
 the INI.

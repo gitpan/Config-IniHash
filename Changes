@@ -25,3 +25,7 @@ Revision history for Perl extension Config::IniHash.
 2.8  Sun Feb 20 2005
 	- you may specify what hash to take the %varname%s from
 	- you may specify what do comments look like
+
+2.8.2 Thu Jan 25 2007
+	- added IO::Scalar to prerequisities to silence test errors in some environments
+	- added the key name to the generated heredoc marks
