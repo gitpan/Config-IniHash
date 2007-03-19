@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.8.2';
+$VERSION = '2.9.0';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -26,6 +26,7 @@ $Config::IniHash::heredoc = 0;
 $Config::IniHash::systemvars = 1;
 $Config::IniHash::withdefaults = 0;
 $Config::IniHash::sectionorder = 0;
+$Config::IniHash::allow_multiple = 0;
 $Config::IniHash::comment = qr/^\s*[#;]/;
 sub BREAK () {1}
 
@@ -39,6 +40,7 @@ sub prepareOpt {
 	$opt->{withdefaults} = $Config::IniHash::withdefaults unless exists $opt->{withdefaults};
 	$opt->{forValue} = $Config::IniHash::forValue unless exists $opt->{forValue};
 	$opt->{sectionorder} = $Config::IniHash::sectionorder unless exists $opt->{sectionorder};
+	$opt->{allow_multiple} = $Config::IniHash::allow_multiple unless exists $opt->{allow_multiple};
 	$opt->{comment} = $Config::IniHash::comment unless exists $opt->{comment};
 
 	for ($opt->{case}) {
@@ -86,13 +88,13 @@ sub prepareOpt {
 		$file =~ s{::}{/}g;
 		if (!$INC{$file.'.pm'}) {
 			eval "use $class;\n1"
-				or die "ERROR autoloading $class : $@";
+				or croak "ERROR autoloading $class : $@";
 		}
 	}
 
 	if ($opt->{withdefaults} and !$INC{'Hash/WithDefaults.pm'}) {
 		eval "use Hash::WithDefaults;\n1"
-			or die "ERROR autoloading Hash::WithDefaults : $@";
+			or croak "ERROR autoloading Hash::WithDefaults : $@";
 	}
 
 	$opt->{heredoc} = ($opt->{heredoc} ? 1 : 0);
@@ -104,6 +106,21 @@ sub prepareOpt {
 
 	if (! ref $opt->{comment}) {
 		$opt->{comment} = qr/^\s*[$opt->{comment}]/;
+	}
+
+	if (ref $opt->{allow_multiple}) {
+		croak "The allow_multiple option must be a true or false scalar or a reference to a HoH or HoA or Ho(comma delimited lists of names)!"
+			unless ref $opt->{allow_multiple} eq 'HASH';
+
+		foreach my $section (values %{$opt->{allow_multiple}}) {
+			if (! ref $section) {
+				$section = {map( ($_ => undef), split( /\s*,\s*/, $section))};
+			} elsif (ref $section eq 'ARRAY') {
+				$section = {map( ($_ => undef), @$section)};
+			} elsif (ref $section ne 'HASH') {
+				croak "The allow_multiple option must be a true or false scalar or a reference to a HoH or HoA or Ho(comma delimited lists of names)!";
+			}
+		}
 	}
 }
 
@@ -191,7 +208,27 @@ sub ReadINI {
 			if ($forValue) {
 				$value = $forValue->($name, $value, $section, $hash);
 			}
-            $hash->{$section}{$name} = $value if defined $value;
+			if (defined $value) {
+				if (!$opt{allow_multiple}) {
+					$hash->{$section}{$name} = $value; # overwrite
+				} elsif (!ref $opt{allow_multiple}) {
+					if (exists $hash->{$section}{$name}) {
+						if (ref $hash->{$section}{$name}) {
+							push @{$hash->{$section}{$name}}, $value;
+						} else {
+							$hash->{$section}{$name} = [ $hash->{$section}{$name}, $value]; # second value
+						}
+					} else {
+						$hash->{$section}{$name} = $value; # set
+					}
+				} else {
+					if (exists $opt{allow_multiple}{$section}{$name} or exists $opt{allow_multiple}{'*'}{$name}) {
+						push @{$hash->{$section}{$name}}, $value;
+					} else {
+						$hash->{$section}{$name} = $value; # set
+					}
+				}
+			}
         }
     }
     close $IN;
@@ -331,7 +368,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 2.7
+version 2.9.0
 
 =head1 SYNOPSIS
 
@@ -410,6 +447,18 @@ interpolated and optionaly contains the values in a hash ref.
 
 	$config->{'__SECTIONS__'} = [ 'the', 'names', 'of', 'the', 'sections', 'in', 'the',
 		'order', 'they', 'were', 'specified', 'in', 'the', 'INI file'];
+
+=item allow_multiple
+
+- if set to a true scalar value then multiple items with the same names in a section
+do not overwrite each other, but result in an array of the values.
+
+- if set to a hash of hashes (or hash of arrays or hash of comma separated item names)
+specifies what items in what sections will end up as
+hashes containing the list of values. All the specified items will be arrays, even if
+there is just a single value. To affect the items in all sections use section name '*'.
+
+By default false.
 
 =item forValue
 

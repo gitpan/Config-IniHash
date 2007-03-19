@@ -1,7 +1,7 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         Config-IniHash
-version:      2.8.2
+version:      2.9.0
 version_from: IniHash.pm
 installdirs:  site
 requires:
