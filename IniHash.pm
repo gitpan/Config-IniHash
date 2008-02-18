@@ -1,16 +1,16 @@
 package Config::IniHash;
 
+use 5.8.0;
 use Carp;
 use strict;
 use Symbol;
-use IO::Scalar;
 
 use Exporter;
 use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '2.9.0';
+$VERSION = '3.00.00';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -150,12 +150,10 @@ sub ReadINI {
 	if (ref $file) {
 		my $ref = ref $file;
 		if ($ref eq 'SCALAR') {
-			$IN = gensym();
-			tie *$IN, 'IO::Scalar', $file;
+			open $IN, '<', $file; # will read from the referenced scalar
 		} elsif ($ref eq 'ARRAY') {
 			my $data = join "\n", map {chomp;$_} @$file;
-			$IN = gensym();
-			tie *$IN, 'IO::Scalar', \$data;
+			open $IN, '<', \$data; # will read from the referenced scalar
 		} elsif ($ref eq 'HASH') {
 			croak "ReadINI cannot accept a HASH reference as it's parameter!";
 		} else {
@@ -327,8 +325,8 @@ sub ReadSection {
 		tie %$hash, $opt{class}
 			if $opt{class};
 	}
-	my $IN = gensym();
-	tie *$IN, 'IO::Scalar', \$text;
+
+	open my $IN, '<', \$text;
 
 	my ($lc,$uc) = ( $opt{forName} eq 'lc', $opt{forName} eq 'uc');
 	my $forValue = $opt{forValue};
@@ -368,7 +366,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 2.9.0
+version 3.00.00
 
 =head1 SYNOPSIS
 
