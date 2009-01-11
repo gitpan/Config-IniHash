@@ -29,3 +29,8 @@ Revision history for Perl extension Config::IniHash.
 2.8.2 Thu Jan 25 2007
 	- added IO::Scalar to prerequisities to silence test errors in some environments
 	- added the key name to the generated heredoc marks
+
+3.00.02 Sun Jan 11 2009
+	- fixed the interoperation of case and sectionorder
+	- added ability to tie the hashes to custom classes
+	- added lots of tests

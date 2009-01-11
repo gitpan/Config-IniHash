@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '3.00.00';
+$VERSION = '3.00.02';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -26,8 +26,11 @@ $Config::IniHash::heredoc = 0;
 $Config::IniHash::systemvars = 1;
 $Config::IniHash::withdefaults = 0;
 $Config::IniHash::sectionorder = 0;
-$Config::IniHash::allow_multiple = 0;
+$Config::IniHash::allowmultiple = 0;
 $Config::IniHash::comment = qr/^\s*[#;]/;
+
+*Config::IniHash::allow_multiple = \$Config::IniHash::allowmultiple;
+
 sub BREAK () {1}
 
 sub prepareOpt {
@@ -40,64 +43,79 @@ sub prepareOpt {
 	$opt->{withdefaults} = $Config::IniHash::withdefaults unless exists $opt->{withdefaults};
 	$opt->{forValue} = $Config::IniHash::forValue unless exists $opt->{forValue};
 	$opt->{sectionorder} = $Config::IniHash::sectionorder unless exists $opt->{sectionorder};
-	$opt->{allow_multiple} = $Config::IniHash::allow_multiple unless exists $opt->{allow_multiple};
+	$opt->{allowmultiple} = $opt->{allow_multiple} unless exists $opt->{allowmultiple};
+	$opt->{allowmultiple} = $Config::IniHash::allowmultiple unless exists $opt->{allowmultiple};
 	$opt->{comment} = $Config::IniHash::comment unless exists $opt->{comment};
 
-	for ($opt->{case}) {
-		$_ = lc $_;
-		$_ = 'no' unless $_;
-
-		local $Carp::CarpLevel = 1;
-		/^lower/ and do {
-			$opt->{class} = 'Hash::Case::Lower';
-			undef $opt->{forName};
-			BREAK}
-		or
-		/^upper/ and do {
-			$opt->{class} = 'Hash::Case::Upper';
-			undef $opt->{forName};
-			BREAK}
-		or
-		/^preserve/ and do {
-			$opt->{class} = 'Hash::Case::Preserve';
-			undef $opt->{forName};
-			BREAK}
-		or
-		/^toupper/ and do {
-			undef $opt->{class};
-			$opt->{forName} = 'uc';
-			BREAK}
-		or
-		/^tolower/ and do {
-			undef $opt->{class};
-			$opt->{forName} = 'lc';
-			BREAK}
-		or
-		/^(?:no|sensitive)/ and do {
-			undef $opt->{class};
-			undef $opt->{forName};
-			BREAK}
-		or
-			croak "Option 'case' may be set only to:\n\t'lower', 'upper', 'preserve', 'toupper', 'tolower' or 'no'\n";
-
-	}
-
 	if ($opt->{class}) {
-		my $class = $opt->{class};
-		my $file = $class;
-		$file =~ s{::}{/}g;
-		if (!$INC{$file.'.pm'}) {
-			eval "use $class;\n1"
-				or croak "ERROR autoloading $class : $@";
+		delete $opt->{withdefaults};
+	} else {
+		for ($opt->{case}) {
+			$_ = lc $_;
+			$_ = 'no' unless $_;
+
+			local $Carp::CarpLevel = 1;
+			/^lower/ and do {
+				if ($opt->{sectionorder} and !ref($opt->{sectionorder})) {
+					$opt->{class} = 'Hash::Case::LowerX';
+				} else {
+					$opt->{class} = 'Hash::Case::Lower';
+				}
+				undef $opt->{forName};
+				BREAK}
+			or
+			/^upper/ and do {
+				$opt->{class} = 'Hash::Case::Upper';
+				undef $opt->{forName};
+				BREAK}
+			or
+			/^preserve/ and do {
+				$opt->{class} = 'Hash::Case::Preserve';
+				undef $opt->{forName};
+				BREAK}
+			or
+			/^toupper/ and do {
+				undef $opt->{class};
+				$opt->{forName} = 'uc';
+				BREAK}
+			or
+			/^tolower/ and do {
+				undef $opt->{class};
+				$opt->{forName} = 'lc';
+				BREAK}
+			or
+			/^(?:no|sensitive)/ and do {
+				undef $opt->{class};
+				undef $opt->{forName};
+				BREAK}
+			or
+				croak "Option 'case' may be set only to:\n\t'lower', 'upper', 'preserve', 'toupper', 'tolower' or 'no'\n";
+
+		}
+
+		if ($opt->{class} and $opt->{class} ne 'Hash::Case::LowerX') {
+			my $class = $opt->{class};
+			my $file = $class;
+			$file =~ s{::}{/}g;
+			if (!$INC{$file.'.pm'}) {
+				eval "use $class;\n1"
+					or croak "ERROR autoloading $class : $@";
+			}
+		}
+
+		if ($opt->{withdefaults} and !$INC{'Hash/WithDefaults.pm'}) {
+			eval "use Hash::WithDefaults;\n1"
+				or croak "ERROR autoloading Hash::WithDefaults : $@";
 		}
 	}
 
-	if ($opt->{withdefaults} and !$INC{'Hash/WithDefaults.pm'}) {
-		eval "use Hash::WithDefaults;\n1"
-			or croak "ERROR autoloading Hash::WithDefaults : $@";
+	if (! $opt->{heredoc}) {
+		$opt->{heredoc} = 0;
+	} elsif (lc($opt->{heredoc}) eq 'perl') {
+		$opt->{heredoc} = 'perl'
+	} else {
+		$opt->{heredoc} = 1;
 	}
-
-	$opt->{heredoc} = ($opt->{heredoc} ? 1 : 0);
 	if (defined $opt->{systemvars} and $opt->{systemvars}) {
 		$opt->{systemvars} = \%ENV unless (ref $opt->{systemvars});
 	} else {
@@ -108,17 +126,18 @@ sub prepareOpt {
 		$opt->{comment} = qr/^\s*[$opt->{comment}]/;
 	}
 
-	if (ref $opt->{allow_multiple}) {
-		croak "The allow_multiple option must be a true or false scalar or a reference to a HoH or HoA or Ho(comma delimited lists of names)!"
-			unless ref $opt->{allow_multiple} eq 'HASH';
+	if (ref $opt->{allowmultiple}) {
+		croak "The allowmultiple option must be a true or false scalar or a reference to a hash of arrays, hashes, regexps or comma separated lists of names!"
+			unless ref $opt->{allowmultiple} eq 'HASH';
 
-		foreach my $section (values %{$opt->{allow_multiple}}) {
+		foreach my $section (values %{$opt->{allowmultiple}}) {
 			if (! ref $section) {
 				$section = {map( ($_ => undef), split( /\s*,\s*/, $section))};
 			} elsif (ref $section eq 'ARRAY') {
 				$section = {map( ($_ => undef), @$section)};
+			} elsif (ref $section eq 'Regexp') {
 			} elsif (ref $section ne 'HASH') {
-				croak "The allow_multiple option must be a true or false scalar or a reference to a HoH or HoA or Ho(comma delimited lists of names)!";
+				croak "The allowmultiple option must be a true or false scalar or a reference to a hash of arrays, hashes, regexps or comma separated lists of names!"
 			}
 		}
 	}
@@ -164,16 +183,30 @@ sub ReadINI {
 	}
 
 	my ($lc,$uc) = ( (defined $opt{forName} and $opt{forName} eq 'lc'), (defined $opt{forName} and $opt{forName} eq 'uc'));
+	if ($opt{sectionorder}) {
+		my $arrayref;
+		if (ref $opt{sectionorder}) {
+			$arrayref = $opt{sectionorder}
+		} else {
+			$arrayref = $hash->{'__SECTIONS__'} = [];
+		}
+		if ($opt{case} eq 'lower' or $opt{case} eq 'tolower') {
+			$opt{sectionorder} = sub {push @$arrayref, lc($_[0])}
+		} elsif ($opt{case} eq 'upper' or $opt{case} eq 'toupper') {
+			$opt{sectionorder} = sub {push @$arrayref, uc($_[0])}
+		} else {
+			$opt{sectionorder} = sub {push @$arrayref, $_[0]}
+		}
+	}
 	my $forValue = $opt{forValue};
 
-	$hash->{'__SECTIONS__'} = [] if $opt{sectionorder};
     while (<$IN>) {
         $_ =~ $opt{comment} and next;
 
         if (/^\[(.*)\]/) {
             $section = $1;
+			$opt{sectionorder}->($section) if $opt{sectionorder};
 			if ($lc) { $section = lc $section} elsif ($uc) { $section = uc $section };
-			push @{$hash->{'__SECTIONS__'}}, $section if $opt{sectionorder};
             unless ($hash->{$section}) {
                 my %tmp = ();
 				if ($opt{withdefaults}) {
@@ -189,7 +222,30 @@ sub ReadINI {
 
         if (/^([^=]*?)\s*=\s*(.*?)\s*$/) {
             my ($name,$value) = ($1,$2);
-			if ($opt{heredoc} and $value =~ /^<<(.+)$/) {
+			if ($opt{heredoc} eq 'perl' and $value =~ /^<<(['"])?(.+)\1\s*$/) {
+				my $type = $1;
+				my $terminator = $2;
+				$value = '';
+				while (<$IN>) {
+					chomp;
+					last if $_ eq $terminator;
+					$value .= "\n".$_;
+				}
+				croak "Heredoc value for [$section]$name not closed at end of file!"
+				 unless defined $_;
+				substr ($value, 0, 1) = '';
+
+				if ($type eq '') {
+					$value =~ s/%([^%]*)%/exists($opt{systemvars}{$1}) ? $opt{systemvars}{$1} : "%$1%"/eg if $opt{systemvars};
+				} elsif ($type eq q{"}) {
+					if ($opt{systemvars}) {
+						$value =~ s/%([^%]*)%/$opt{systemvars}{$1}/g;
+					} else {
+						$value =~ s/%([^%]*)%/$ENV{$1}/g;
+					}
+				}
+
+			} elsif ($opt{heredoc} and $value =~ /^<<(.+)\s*$/) {
 				my $terminator = $1;
 				$value = '';
 				while (<$IN>) {
@@ -200,16 +256,20 @@ sub ReadINI {
 				croak "Heredoc value for [$section]$name not closed at end of file!"
 				 unless defined $_;
 				substr ($value, 0, 1) = '';
+				$value =~ s/%([^%]*)%/exists($opt{systemvars}{$1}) ? $opt{systemvars}{$1} : "%$1%"/eg if $opt{systemvars};
+
+			} else {
+				$value =~ s/%([^%]*)%/exists($opt{systemvars}{$1}) ? $opt{systemvars}{$1} : "%$1%"/eg if $opt{systemvars};
 			}
-            $value =~ s/%([^%]*)%/$opt{systemvars}{$1} || "%$1%"/eg if $opt{systemvars};
+
 			if ($lc) { $name = lc $name} elsif ($uc) { $name = uc $name };
 			if ($forValue) {
 				$value = $forValue->($name, $value, $section, $hash);
 			}
 			if (defined $value) {
-				if (!$opt{allow_multiple}) {
+				if (!$opt{allowmultiple}) {
 					$hash->{$section}{$name} = $value; # overwrite
-				} elsif (!ref $opt{allow_multiple}) {
+				} elsif (!ref $opt{allowmultiple}) {
 					if (exists $hash->{$section}{$name}) {
 						if (ref $hash->{$section}{$name}) {
 							push @{$hash->{$section}{$name}}, $value;
@@ -220,7 +280,7 @@ sub ReadINI {
 						$hash->{$section}{$name} = $value; # set
 					}
 				} else {
-					if (exists $opt{allow_multiple}{$section}{$name} or exists $opt{allow_multiple}{'*'}{$name}) {
+					if (exists $opt{allowmultiple}{$section}{$name} or exists $opt{allowmultiple}{'*'}{$name}) {
 						push @{$hash->{$section}{$name}}, $value;
 					} else {
 						$hash->{$section}{$name} = $value; # set
@@ -237,13 +297,13 @@ sub WriteINI {
     my ($file,$hash) = @_;
     open OUT, ">$file" or return undef;
 	if (exists $hash->{'__SECTIONS__'}) {
-		my $all_have_order = (scalar(@{$hash->{'__SECTIONS__'}}) == scalar(keys %$hash));
+		my $all_have_order = (scalar(@{$hash->{'__SECTIONS__'}}) == scalar(keys %$hash)-1);
 		foreach my $section (@{$hash->{'__SECTIONS__'}}) {
 			print OUT "[$section]\n";
 			my $sec;
 			if (exists $hash->{$section}) {
 				my $sec = $hash->{$section};
-				foreach my $key (keys %{$hash->{$section}}) {
+				foreach my $key (sort keys %{$hash->{$section}}) {
 					if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
 						print OUT"$key\n";
 					} elsif ($sec->{$key} =~ /\n/) {
@@ -263,7 +323,7 @@ sub WriteINI {
 				next if exists($ordered{$section}) or $section eq '__SECTIONS__';
 				print OUT "[$section]\n";
 				my $sec = $hash->{$section};
-				foreach my $key (keys %{$hash->{$section}}) {
+				foreach my $key (sort keys %{$hash->{$section}}) {
 					if ($key =~ /^[#';]/ and ! defined($sec->{$key})) {
 						print OUT"$key\n";
 					} elsif ($sec->{$key} =~ /\n/) {
@@ -297,18 +357,24 @@ sub WriteINI {
 *PrintINI = \&WriteINI;
 
 sub AddDefaults {
-	my ($ini,$subsection,$mainsection) = @_;
+	my ($ini, $section, $defaults) = @_;
 
-	croak "$subsection doesn't exist in the hash!"
-		unless exists $ini->{$subsection};
+	croak "$section doesn't exist in the hash!"
+		unless exists $ini->{$section};
 
-	croak "$mainsection doesn't exist in the hash!"
-		unless exists $ini->{$mainsection};
+	croak "You can call AddDefaults ONLY on hashes created with\n\$Win32::IniHash::withdefaults=1 !"
+		unless tied(%{$ini->{$section}}) and tied(%{$ini->{$section}})->isa('Hash::WithDefaults');
 
-	if ( tied(%{$ini->{$subsection}})->isa('Hash::WithDefaults') ) {
-		tied(%{$ini->{$subsection}})->AddDefault($ini->{$mainsection});
+	if (ref $defaults) {
+		croak "The defaults must be a section name or a hash ref!"
+			unless ref $defaults eq 'HASH';
+
+		tied(%{$ini->{$section}})->AddDefault($defaults);
 	} else {
-		croak "You can call AddDefaults ONLY on hashes created with\n\$Win32::IniHash::withdefaults=1 !"
+		croak "$defaults doesn't exist in the hash!"
+			unless exists $ini->{$defaults};
+
+		tied(%{$ini->{$section}})->AddDefault($ini->{$defaults});
 	}
 }
 
@@ -359,6 +425,28 @@ sub ReadSection {
     return $hash;
 }
 
+package Hash::Case::LowerX;
+use base 'Hash::Case';
+
+use strict;
+use Carp;
+
+sub init($)
+{   my ($self, $args) = @_;
+
+    $self->SUPER::native_init($args);
+
+    croak "No options possible for ".__PACKAGE__
+        if keys %$args;
+
+    $self;
+}
+
+sub FETCH($)  { $_[0]->{($_[1] eq '__SECTIONS__' ? $_[1] : lc $_[1])} }
+sub STORE($$) { $_[0]->{($_[1] eq '__SECTIONS__' ? $_[1] : lc $_[1])} = $_[2] }
+sub EXISTS($) { exists $_[0]->{($_[1] eq '__SECTIONS__' ? $_[1] : lc $_[1])} }
+sub DELETE($) { delete $_[0]->{($_[1] eq '__SECTIONS__' ? $_[1] : lc $_[1])} }
+
 1;
 __END__
 
@@ -366,7 +454,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 3.00.00
+version 3.00.02
 
 =head1 SYNOPSIS
 
@@ -409,7 +497,16 @@ The available options are:
 	END
 	othername=value
 
+	0 : heredocs are ignored, $data->{section}{name} will be '<<END'
+	1 : heredocs are supported, $data->{section}{name} will be "the\nmany lines\nlong value"
+	    The Perl-lie extensions of name=<<"END" and <<'END' are not supported!
+	'Perl' : heredocs are supported, $data->{section}{name} will be "the\nmany lines\nlong value"
+	    The Perl-lie extensions of name=<<"END" and <<'END' are supported.
+		The <<'END' never interpolates %variables%, the "END" always interpolates variables,
+		unlike in other values, the %variables% that are not defined do not stay in the string!
+
 Default: 0 = OFF
+
 
 =item systemvars
 
@@ -431,13 +528,18 @@ interpolated and optionaly contains the values in a hash ref.
   sensitive	- the hash will be case sensitive
   tolower	- the hash will be case sensitive, all keys are made lowercase
   toupper	- the hash will be case sensitive, all keys are made uppercase
-  preserve	- the hash will be case insensitive, the case is preserved
-  lower	- the hash will be case insensitive, all keys are made lowercase
-  upper	- the hash will be case insensitive, all keys are made uppercase
+  preserve	- the hash will be case insensitive, the case is preserved (tied)
+  lower	- the hash will be case insensitive, all keys are made lowercase (tied)
+  upper	- the hash will be case insensitive, all keys are made uppercase (tied)
 
 =item withdefaults
 
-- controls whether the created section hashes support defaults.
+- controls whether the created section hashes support defaults. See L<Hash::WithDefaults>.
+
+=item class
+
+- allows you to specify the class into which to tie the created hashes. This option overwrites
+the "case" and "withdefaults" options!
 
 =item sectionorder
 
@@ -446,7 +548,11 @@ interpolated and optionaly contains the values in a hash ref.
 	$config->{'__SECTIONS__'} = [ 'the', 'names', 'of', 'the', 'sections', 'in', 'the',
 		'order', 'they', 'were', 'specified', 'in', 'the', 'INI file'];
 
-=item allow_multiple
+- if set to an array ref, then the list will be stored in that array, and no $config->{'__SECTIONS__'}
+is created. The case of the section names stored in this array is controled by the "case" option even
+in case you specify the "class".
+
+=item allowmultiple
 
 - if set to a true scalar value then multiple items with the same names in a section
 do not overwrite each other, but result in an array of the values.
@@ -484,6 +590,23 @@ The default is
 You may also set the defaults for the options by modifying the $Config::IniHash::optionname
 variables. These default settings will be used if you do not specify the option in the ReadINI()
 or ReadSection() call.
+
+=hash3 AddDefaults
+
+  AddDefaults( $config, 'normal section name', 'default section name');
+  AddDefaults( $config, 'normal section name', \%defaults);
+
+This subroutine adds a some default values into a section. The values are NOT copied into the section,
+but rather the section knows to look up the missing options in the default section or hash.
+
+Eg.
+
+  if (exists $config->{':default'}) {
+    foreach my $section (keys %$config) {
+      next if $section =~ /^:/;
+      AddDefaults( $config, $section, ':default');
+    }
+  }
 
 =head3 ReadSection
 
