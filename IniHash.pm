@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '3.00.02';
+$VERSION = '3.00.03';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -362,7 +362,7 @@ sub AddDefaults {
 	croak "$section doesn't exist in the hash!"
 		unless exists $ini->{$section};
 
-	croak "You can call AddDefaults ONLY on hashes created with\n\$Win32::IniHash::withdefaults=1 !"
+	croak "You can call AddDefaults ONLY on hashes created with\n\$Config::IniHash::withdefaults=1 !"
 		unless tied(%{$ini->{$section}}) and tied(%{$ini->{$section}})->isa('Hash::WithDefaults');
 
 	if (ref $defaults) {
@@ -454,7 +454,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 3.00.02
+version 3.00.03
 
 =head1 SYNOPSIS
 

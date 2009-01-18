@@ -22,6 +22,12 @@ my %orig_data = (
 	},
 );
 
+if (!exists $ENV{TEMP} or !-d $ENV{TEMP}) {
+	eval "use 'File/Spec.pm'";
+	$ENV{TEMP} = File::Spec->tmpdir;
+}
+
+
 my $filename = "$ENV{TEMP}\\test_Config_IniHash_$$.INI";
 ok( WriteINI( $filename, \%orig_data), "WriteINI => $filename");
 END { unlink $filename }
@@ -60,7 +66,7 @@ END { unlink $filename }
 	my $read_data = ReadINI( $filename, {systemvars => 0});
 	ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename', {systemvars => 0}");
 
-	is( $read_data->{Two}{temp}, '%temp%', "System variables are not interpolated if not wanted");
+	is( $read_data->{Two}{temp}, '%TEMP%', "System variables are not interpolated if not wanted");
 }
 
 {
@@ -71,10 +77,10 @@ END { unlink $filename }
 }
 
 {
-	my $read_data = ReadINI( $filename, {systemvars => {temp => 'subverted'}});
+	my $read_data = ReadINI( $filename, {systemvars => {TEMP => 'subverted'}});
 	ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename', {systemvars => {...}}");
 
-	is( $read_data->{Two}{temp}, 'subverted', "System variables are interpolated using a custom hash");
+	is( $read_data->{Two}{TEMP}, 'subverted', "System variables are interpolated using a custom hash");
 }
 
 
@@ -608,7 +614,7 @@ string=blah blah
 string2=blah=flah
 
 [Two]
-temp=%temp%
+temp=%TEMP%
 foo=jedna
 foo=dva
 

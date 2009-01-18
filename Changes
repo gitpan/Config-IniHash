@@ -34,3 +34,6 @@ Revision history for Perl extension Config::IniHash.
 	- fixed the interoperation of case and sectionorder
 	- added ability to tie the hashes to custom classes
 	- added lots of tests
+
+3.00.03 Sun Jan 18 2009
+	- fixed the test to work on Unixes (the TEMP variable was not defined and %ENV is case sensitive under Unix)
