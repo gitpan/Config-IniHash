@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '3.00.03';
+$VERSION = '3.00.04';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -454,7 +454,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 3.00.03
+version 3.00.04
 
 =head1 SYNOPSIS
 
@@ -591,7 +591,7 @@ You may also set the defaults for the options by modifying the $Config::IniHash:
 variables. These default settings will be used if you do not specify the option in the ReadINI()
 or ReadSection() call.
 
-=hash3 AddDefaults
+=head3 AddDefaults
 
   AddDefaults( $config, 'normal section name', 'default section name');
   AddDefaults( $config, 'normal section name', \%defaults);

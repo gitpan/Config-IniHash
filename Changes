@@ -37,3 +37,6 @@ Revision history for Perl extension Config::IniHash.
 
 3.00.03 Sun Jan 18 2009
 	- fixed the test to work on Unixes (the TEMP variable was not defined and %ENV is case sensitive under Unix)
+
+3.00.04 Mon Jan 19 2009
+	- erm. hopefully the test script finaly works under unix

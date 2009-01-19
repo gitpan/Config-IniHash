@@ -6,6 +6,7 @@
 use Test::More tests => 208;
 #use diagnostics;
 use strict;
+use File::Spec;
 
 BEGIN { use_ok( 'Config::IniHash' ); }
 
@@ -23,12 +24,11 @@ my %orig_data = (
 );
 
 if (!exists $ENV{TEMP} or !-d $ENV{TEMP}) {
-	eval "use 'File/Spec.pm'";
 	$ENV{TEMP} = File::Spec->tmpdir;
 }
 
 
-my $filename = "$ENV{TEMP}\\test_Config_IniHash_$$.INI";
+my $filename = File::Spec->catfile( $ENV{TEMP}, "test_Config_IniHash_$$.INI");
 ok( WriteINI( $filename, \%orig_data), "WriteINI => $filename");
 END { unlink $filename }
 
