@@ -27,33 +27,35 @@ if (!exists $ENV{TEMP} or !-d $ENV{TEMP}) {
 	$ENV{TEMP} = File::Spec->tmpdir;
 }
 
-
-my $filename = File::Spec->catfile( $ENV{TEMP}, "test_Config_IniHash_$$.INI");
-ok( WriteINI( $filename, \%orig_data), "WriteINI => $filename");
-END { unlink $filename }
-
-{
-	my $read_data = ReadINI( $filename, {case => 'sensitive'});
-	ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename'");
-
-	is_deeply( \%orig_data, $read_data, "Read data match the original");
+my $script_file = $0;
+if (! File::Spec->file_name_is_absolute($script_file)) {
+	$script_file = File::Spec->rel2abs($script_file);
 }
 
 {
-	my $read_data = ReadINI( $filename);
-	ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename'");
+	(my $filename = $script_file) =~ s/\.pl$/-write.ini/;
+	ok( WriteINI( $filename, \%orig_data), "WriteINI => $filename");
+	END { unlink $filename }
 
-	my $read_data2 = ReadINI( $filename, {case => 'lower'});
-	ok( (defined($read_data2) and ref($read_data2)), "ReadINI '$filename', {case => 'lower'}");
+	{
+		my $read_data = ReadINI( $filename, {case => 'sensitive'});
+		ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename'");
 
-	is_deeply( $read_data, $read_data2, "case => 'lower' is the default");
+		is_deeply( \%orig_data, $read_data, "Read data match the original");
+	}
+
+	{
+		my $read_data = ReadINI( $filename);
+		ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename'");
+
+		my $read_data2 = ReadINI( $filename, {case => 'lower'});
+		ok( (defined($read_data2) and ref($read_data2)), "ReadINI '$filename', {case => 'lower'}");
+
+		is_deeply( $read_data, $read_data2, "case => 'lower' is the default");
+	}
 }
 
-{
-	open my $OUT, '>', $filename;
-	print $OUT do {local $/; <DATA>};
-	close $OUT;
-}
+(my $filename = $script_file) =~ s/\.pl$/.ini/;
 
 {
 	my $read_data = ReadINI( $filename);
@@ -162,9 +164,9 @@ END { unlink $filename }
 
 {
 	use File::Copy qw(copy);
-	(my $filename2 = $filename) =~ s/\.INI/-2.INI/;
+	(my $filename2 = $filename) =~ s/\.ini/-2.ini/;
 	copy $filename => $filename2;
-	END {unlink $filename};
+	END {unlink $filename2};
 	open my $FH, '>>', $filename2 or die "Unable to append to $filename2: $^E\n";
 	print $FH <<'*EnD*';
 long2=<<"*END*"
@@ -463,7 +465,7 @@ nonsense is %NONSE_NS%
 {
 	my $read_data = ReadINI( $filename, {case => 'preserve', sectionorder => 1});
 
-	(my $filename2 = $filename) =~ s/\.INI$/-3.INI/;
+	(my $filename2 = $filename) =~ s/\.ini$/-3.ini/;
 	ok(WriteINI( $filename2, $read_data), "Wrote the ini file with case => preserve, sectionorder => 1");
 	END {unlink $filename2};
 
@@ -475,7 +477,7 @@ nonsense is %NONSE_NS%
 {
 	my $read_data = ReadINI( $filename, {case => 'tolower', sectionorder => 1});
 
-	(my $filename2 = $filename) =~ s/\.INI$/-3.INI/;
+	(my $filename2 = $filename) =~ s/\.ini$/-3.ini/;
 	ok(WriteINI( $filename2, $read_data), "Wrote the ini file with case => tolower, sectionorder => 1");
 
 	my $read_data2 = ReadINI( $filename2, {case => 'preserve', sectionorder => 1});
@@ -486,7 +488,7 @@ nonsense is %NONSE_NS%
 {
 	my $read_data = ReadINI( $filename, {case => 'toupper', sectionorder => 1});
 
-	(my $filename2 = $filename) =~ s/\.INI$/-3.INI/;
+	(my $filename2 = $filename) =~ s/\.ini$/-3.ini/;
 	ok(WriteINI( $filename2, $read_data), "Wrote the ini file with case => toupper, sectionorder => 1");
 
 	my $read_data2 = ReadINI( $filename2, {case => 'preserve', sectionorder => 1});
@@ -497,7 +499,7 @@ nonsense is %NONSE_NS%
 {
 	my $read_data = ReadINI( $filename, {case => 'lower', sectionorder => 1});
 
-	(my $filename2 = $filename) =~ s/\.INI$/-3.INI/;
+	(my $filename2 = $filename) =~ s/\.ini$/-3.ini/;
 	ok(WriteINI( $filename2, $read_data), "Wrote the ini file with case => lower, sectionorder => 1");
 
 	my $read_data2 = ReadINI( $filename2, {case => 'preserve', sectionorder => 1});
@@ -508,7 +510,7 @@ nonsense is %NONSE_NS%
 {
 	my $read_data = ReadINI( $filename, {case => 'upper', sectionorder => 1});
 
-	(my $filename2 = $filename) =~ s/\.INI$/-3.INI/;
+	(my $filename2 = $filename) =~ s/\.ini$/-3.ini/;
 	ok(WriteINI( $filename2, $read_data), "Wrote the ini file with case => upper, sectionorder => 1");
 
 	my $read_data2 = ReadINI( $filename2, {case => 'preserve', sectionorder => 1});
@@ -519,7 +521,7 @@ nonsense is %NONSE_NS%
 {
 	my $read_data = ReadINI( $filename, {case => 'preserve', sectionorder => 1});
 
-	(my $filename2 = $filename) =~ s/\.INI$/-3.INI/;
+	(my $filename2 = $filename) =~ s/\.ini$/-3.ini/;
 	ok(WriteINI( $filename2, $read_data), "Wrote the ini file with case => preserve, sectionorder => 1");
 
 	my $read_data2 = ReadINI( $filename2, {case => 'preserve', sectionorder => 1});
@@ -530,7 +532,7 @@ nonsense is %NONSE_NS%
 {
 	my $read_data = ReadINI( $filename, {case => 'preserve', sectionorder => 0});
 
-	(my $filename2 = $filename) =~ s/\.INI$/-3.INI/;
+	(my $filename2 = $filename) =~ s/\.ini$/-3.ini/;
 	ok(WriteINI( $filename2, $read_data), "Wrote the ini file with case => preserve, sectionorder => 0");
 
 	my $read_data2 = ReadINI( $filename2, {case => 'preserve', sectionorder => 0});
@@ -599,46 +601,3 @@ nonsense is %NONSE_NS%
 	}
 	is ($missing, 0, "All sections in __SECTIONS__ are accessible");
 }
-
-
-
-__DATA__
-[:default]
-int=5
-foo=dz_difolt
-
-[one]
-int=1
-real=4.7547
-string=blah blah
-string2=blah=flah
-
-[Two]
-temp=%TEMP%
-foo=jedna
-foo=dva
-
-[Three]
-aaaa=asd
-Bbbb=asd
-CCCC=asd
-
-[Four]
-foo=1
-foo=2
-foo=3
-bar=U Trech Sudu
-
-[Five]
-#com1=hi
-;com2=ho
-'com3=hu
-//com4=hy
-
-[Six]
-long=<<*END*
-blah
-blah blah
-blah
-*END*
-short=Hello

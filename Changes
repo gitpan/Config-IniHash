@@ -40,3 +40,7 @@ Revision history for Perl extension Config::IniHash.
 
 3.00.04 Mon Jan 19 2009
 	- erm. hopefully the test script finaly works under unix
+
+3.00.05 Mon Jan 26 2009
+	- erm. hopefully the test script finaly works under unix
+	- it now doesn't attempt to create files in the temp directory

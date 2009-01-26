@@ -10,7 +10,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '3.00.04';
+$VERSION = '3.00.05';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -454,7 +454,7 @@ __END__
 
 Config::IniHash - Perl extension for reading and writing INI files
 
-version 3.00.04
+version 3.00.05
 
 =head1 SYNOPSIS
 
