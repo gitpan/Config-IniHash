@@ -1,8 +1,9 @@
 Changes
-IniHash.pm
-Makefile.PL
+lib/Config/IniHash.pm
+Build.PL
 MANIFEST
 README
 test.pl
 test.ini
 META.yml                                 Module meta-data (added by MakeMaker)
+Makefile.PL

@@ -1,16 +1,22 @@
---- #YAML:1.0
-name:                Config-IniHash
-version:             3.00.05
-abstract:            Perl extension for reading and writing INI files
-license:             ~
-generated_by:        ExtUtils::MakeMaker version 6.3201
-distribution_type:   module
-requires:     
-    Hash::Case:                    0
-    Hash::WithDefaults:            0.04
-    IO::Scalar:                    0
-meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
-    version: 1.2
+---
+name: Config-IniHash
+version: 3.01.00
 author:
-    - Jenda Krynicky (Jenda@Krynicky.cz)
+  - 'Jenda Krynicky <Jenda@Krynicky.cz>'
+abstract: Perl extension for reading and writing INI files
+license: perl
+resources:
+  license: http://dev.perl.org/licenses/
+build_requires:
+  Hash::Case: 0
+  Hash::WithDefaults: 0.04
+provides:
+  Config::IniHash:
+    file: lib/Config/IniHash.pm
+    version: 3.01.00
+  Hash::Case::LowerX:
+    file: lib/Config/IniHash.pm
+generated_by: Module::Build version 0.2808
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2

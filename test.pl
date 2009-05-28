@@ -61,7 +61,7 @@ if (! File::Spec->file_name_is_absolute($script_file)) {
 	my $read_data = ReadINI( $filename);
 	ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename' (different data)");
 
-	is( $read_data->{Two}{temp}, $ENV{temp}, "System variables are interpolated by default");
+	is( $read_data->{Two}{temp}, $ENV{TEMP}, "System variables are interpolated by default");
 }
 
 {
@@ -75,7 +75,7 @@ if (! File::Spec->file_name_is_absolute($script_file)) {
 	my $read_data = ReadINI( $filename, {systemvars => 1});
 	ok( (defined($read_data) and ref($read_data)), "ReadINI '$filename', {systemvars => 1}");
 
-	is( $read_data->{Two}{temp}, $ENV{temp}, "System variables are interpolated if asked to");
+	is( $read_data->{Two}{temp}, $ENV{TEMP}, "System variables are interpolated if asked to");
 }
 
 {
