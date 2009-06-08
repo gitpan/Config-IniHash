@@ -1,6 +1,6 @@
 ---
 name: Config-IniHash
-version: 3.01.00
+version: 3.01.01
 author:
   - 'Jenda Krynicky <Jenda@Krynicky.cz>'
 abstract: Perl extension for reading and writing INI files
@@ -13,7 +13,7 @@ build_requires:
 provides:
   Config::IniHash:
     file: lib/Config/IniHash.pm
-    version: 3.01.00
+    version: 3.01.01
   Hash::Case::LowerX:
     file: lib/Config/IniHash.pm
 generated_by: Module::Build version 0.2808

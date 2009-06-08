@@ -12,7 +12,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT = qw(&ReadINI &WriteINI &PrintINI);
 @EXPORT_OK = qw(&ReadINI &WriteINI &PrintINI &AddDefaults &ReadSection);
-$VERSION = '3.01.00';
+$VERSION = '3.01.01';
 
 if (0) { # for PerlApp/PerlSvc/PerlCtrl/Perl2Exe
 	require 'Hash/WithDefaults.pm';
@@ -149,7 +149,7 @@ sub prepareOpt {
 }
 
 sub ReadINI {
-    my $file = shift;
+	my $file = shift;
 	my %opt;
 	if (@_ == 1 and ref $_[0]) {
 		%opt = %{$_[0]};
@@ -160,7 +160,7 @@ sub ReadINI {
 	}
 	prepareOpt(\%opt);
 
-    my $hash;
+	my $hash;
 	if ($opt{hash}) {
 		$hash = $opt{hash};
 	} else {
@@ -169,7 +169,7 @@ sub ReadINI {
 			if $opt{class};
 	}
 
-    my $section = '';
+	my $section = '';
 	my $IN;
 	if (ref $file) {
 		my $ref = ref $file;
@@ -229,32 +229,29 @@ sub ReadINI {
 	}
 	my $forValue = $opt{forValue};
 
-    while (<$IN>) {
+	while (<$IN>) {
 
-#use Encode qw(is_utf8);
-#print $_, " - is_utf8=" . is_utf8($_) . "\n";
+		$_ =~ $opt{comment} and next;
 
-        $_ =~ $opt{comment} and next;
-
-        if (/^\[(.*)\]/) {
-            $section = $1;
+		if (/^\[(.*)\]/) {
+			$section = $1;
 			$opt{sectionorder}->($section) if $opt{sectionorder};
 			if ($lc) { $section = lc $section} elsif ($uc) { $section = uc $section };
-            unless ($hash->{$section}) {
-                my %tmp = ();
+			unless ($hash->{$section}) {
+				my %tmp = ();
 				if ($opt{withdefaults}) {
 					tie %tmp, 'Hash::WithDefaults', $opt{case};
 				} else {
 					tie %tmp, $opt{class}
 						if $opt{class};
 				}
-                $hash->{$section} = \%tmp;
-                next;
-            }
-        }
+				$hash->{$section} = \%tmp;
+			}
+			next;
+		}
 
-        if (/^([^=]*?)\s*=\s*(.*?)\s*$/) {
-            my ($name,$value) = ($1,$2);
+		if (/^([^=]*?)\s*=\s*(.*?)\s*$/) {
+			my ($name,$value) = ($1,$2);
 			if ($opt{heredoc} eq 'perl' and $value =~ /^<<(['"])?(.+)\1\s*$/) {
 				my $type = $1;
 				my $terminator = $2;
@@ -320,15 +317,15 @@ sub ReadINI {
 					}
 				}
 			}
-        }
-    }
-    close $IN;
-    return $hash;
+		}
+	}
+	close $IN;
+	return $hash;
 }
 
 sub WriteINI {
-    my ($file,$hash) = @_;
-    open my $OUT, ">$file" or return undef;
+	my ($file,$hash) = @_;
+	open my $OUT, ">$file" or return undef;
 	if (exists $hash->{'__SECTIONS__'}) {
 		my $all_have_order = (scalar(@{$hash->{'__SECTIONS__'}}) == scalar(keys %$hash)-1);
 		foreach my $section (@{$hash->{'__SECTIONS__'}}) {
@@ -384,8 +381,8 @@ sub WriteINI {
 			print $OUT "\n";
 		}
 	}
-    close $OUT;
-    return 1;
+	close $OUT;
+	return 1;
 }
 *PrintINI = \&WriteINI;
 
@@ -413,7 +410,7 @@ sub AddDefaults {
 
 
 sub ReadSection {
-    my $text = shift;
+	my $text = shift;
 	my %opt = @_;
 	prepareOpt(\%opt);
 
@@ -429,11 +426,11 @@ sub ReadSection {
 
 	my ($lc,$uc) = ( $opt{forName} eq 'lc', $opt{forName} eq 'uc');
 	my $forValue = $opt{forValue};
-    while (<$IN>) {
-        /^\s*;/ and next;
+	while (<$IN>) {
+		/^\s*;/ and next;
 
-        if (/^([^=]*?)\s*=\s*(.*?)\s*$/) {
-            my ($name,$value) = ($1,$2);
+		if (/^([^=]*?)\s*=\s*(.*?)\s*$/) {
+			my ($name,$value) = ($1,$2);
 			if ($opt{heredoc} and $value =~ /^<<(.+)$/) {
 				my $terminator = $1;
 				$value = '';
@@ -446,16 +443,16 @@ sub ReadSection {
 					unless defined $_;
 				substr ($value, 0, 1) = '';
 			}
-            $value =~ s/%(.*?)%/$opt{systemvars}{$1}/g if $opt{systemvars};
+			$value =~ s/%(.*?)%/$opt{systemvars}{$1}/g if $opt{systemvars};
 			if ($lc) { $name = lc $name} elsif ($uc) { $name = uc $name };
 			if ($forValue) {
 				$value = $forValue->($name, $value, undef, $hash);
 			}
-            $hash->{$name} = $value;
-        }
-    }
-    close $IN;
-    return $hash;
+			$hash->{$name} = $value;
+		}
+	}
+	close $IN;
+	return $hash;
 }
 
 package Hash::Case::LowerX;
@@ -467,12 +464,12 @@ use Carp;
 sub init($)
 {   my ($self, $args) = @_;
 
-    $self->SUPER::native_init($args);
+	$self->SUPER::native_init($args);
 
-    croak "No options possible for ".__PACKAGE__
-        if keys %$args;
+	croak "No options possible for ".__PACKAGE__
+		if keys %$args;
 
-    $self;
+	$self;
 }
 
 sub FETCH($)  { $_[0]->{($_[1] eq '__SECTIONS__' ? $_[1] : lc $_[1])} }
@@ -512,10 +509,10 @@ This module reads and writes INI files.
 The returned hash contains a reference to a hash for each section of
 the INI.
 
-    [section]
-    name=value
+	[section]
+	name=value
   leads to
-    $hash->{section}->{name}  = value;
+	$hash->{section}->{name}  = value;
 
 The available options are:
 
@@ -534,9 +531,9 @@ The available options are:
 
 	0 : heredocs are ignored, $data->{section}{name} will be '<<END'
 	1 : heredocs are supported, $data->{section}{name} will be "the\nmany lines\nlong value"
-	    The Perl-lie extensions of name=<<"END" and <<'END' are not supported!
+		The Perl-lie extensions of name=<<"END" and <<'END' are not supported!
 	'Perl' : heredocs are supported, $data->{section}{name} will be "the\nmany lines\nlong value"
-	    The Perl-lie extensions of name=<<"END" and <<'END' are supported.
+		The Perl-lie extensions of name=<<"END" and <<'END' are supported.
 		The <<'END' never interpolates %variables%, the "END" always interpolates variables,
 		unlike in other values, the %variables% that are not defined do not stay in the string!
 
@@ -548,9 +545,9 @@ Default: 0 = OFF
 - controls whether the (system) variables enclosed in %% are
 interpolated and optionaly contains the values in a hash ref.
 
-    name=%USERNAME%
+	name=%USERNAME%
   leads to
-    $data->{section}->{name} = "Jenda"
+	$data->{section}->{name} = "Jenda"
 
 	systemvars = 1	- yes, take values from %ENV
 	systemvars = \%hash	- yes, take values from %hash
@@ -575,6 +572,12 @@ interpolated and optionaly contains the values in a hash ref.
 
 - allows you to specify the class into which to tie the created hashes. This option overwrites
 the "case" and "withdefaults" options!
+
+You may for example use
+
+  class => 'Tie::IxHash',
+
+to store the sections in hashes that remember the insertion order.
 
 =item sectionorder
 
@@ -644,10 +647,10 @@ but rather the section knows to look up the missing options in the default secti
 Eg.
 
   if (exists $config->{':default'}) {
-    foreach my $section (keys %$config) {
-      next if $section =~ /^:/;
-      AddDefaults( $config, $section, ':default');
-    }
+	foreach my $section (keys %$config) {
+	  next if $section =~ /^:/;
+	  AddDefaults( $config, $section, ':default');
+	}
   }
 
 =head3 ReadSection
